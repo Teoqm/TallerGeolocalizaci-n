@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Polígono con Geolocalización</title>
+  <title>Poligono con Geolocalizacion</title>
   <!-- CSS de Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
   <header>
-    <h1>Mi polígono</h1>
+    <h1>Mi poligono</h1>
     <div class="controles">
-      <button id="btnUbicar">Mi ubicación</button>
-      <!-- Reto 4: Agregar posición GPS como vértice -->
-      <button id="btnAgregarGPS">Agregar mi posición como vértice</button>
+      <button id="btnUbicar">Mi ubicacion</button>
+      <!-- Reto 4: Agregar posicion GPS como vertice -->
+      <button id="btnAgregarGPS">Agregar mi posicion como vertice</button>
       
-      <button id="btnCerrar" disabled>Cerrar polígono</button>
+      <button id="btnCerrar" disabled>Cerrar poligono</button>
       <button id="btnDeshacer" disabled>Deshacer punto</button>
       <button id="btnLimpiar">Limpiar</button>
       <button id="btnExportar" disabled>Exportar GeoJSON</button>
 
-      <!-- Reto 3: Campo de nombre del polígono -->
+      <!-- Reto 3: Campo de nombre del poligono -->
       <label for="inputNombre" style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem;">
         Nombre:
-        <input type="text" id="inputNombre" placeholder="Mi polígono" value="Mi polígono">
+        <input type="text" id="inputNombre" placeholder="Mi poligono" value="Mi poligono">
       </label>
       
       <!-- Reto 2: Selector de color -->
@@ -39,7 +39,7 @@
         <input type="file" id="inputImportar" accept=".geojson, .json" style="display: none;">
       </label>
     </div>
-    <p id="info">Haz clic en el mapa para agregar vértices.</p>
+    <p id="info">Haz clic en el mapa para agregar vertices.</p>
   </header>
 
   <!-- Contenedor del mapa -->
@@ -47,7 +47,7 @@
 
   <!-- Reto 1: Tabla HTML de coordenadas -->
   <div id="contenedorTabla">
-    <h3>Vértices agregados</h3>
+    <h3>Vertices agregados</h3>
     <table>
       <thead>
         <tr>
@@ -58,7 +58,7 @@
       </thead>
       <tbody id="tablaVerticesBody">
         <tr>
-          <td colspan="3" style="text-align: center; color: #777;">No hay vértices aún</td>
+          <td colspan="3" style="text-align: center; color: #777;">No hay vertices aún</td>
         </tr>
       </tbody>
     </table>
