@@ -11,7 +11,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let marcadorUsuario = null;
 let circuloPrecision = null;
 let puntos = [];       // Array de [lat, lng]
-let vertices = [];     // Marcadores en el mapa de cada punto
+let vertices = [];     // Marcadores en el mapa
 let poligono = null;   // Poligono en Leaflet
 
 const lineaGuia = L.polyline([], { color: '#e67e22', dashArray: '6 6' }).addTo(mapa);
@@ -41,7 +41,7 @@ function ubicarUsuario() {
       circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
       
       mapa.setView(punto, 17);
-      mostrarInfo(`Ubicacion encontrada (precision: ${Math.round(accuracy)} m). Haz clic en el mapa para dibujar.`);
+      mostrarInfo(`Ubicacion encontrada (precision: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
     },
     (err) => {
       const mensajes = {
@@ -49,19 +49,61 @@ function ubicarUsuario() {
         2: 'No se pudo determinar la ubicacion.',
         3: 'Se agoto el tiempo de espera.'
       };
-      mostrarInfo(mensajes[err.code] || 'Error desconocido al obtener la ubicacion.');
+      mostrarInfo(mensajes[err.code] || 'Error desconocido.');
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 
-// Reto 1: Funcion para actualizar la tabla HTML de coordenadas
+// Reto 4: Agregar vertice con la ubicacion actual del GPS
+function agregarVerticeGPS() {
+  if (!('geolocation' in navigator)) {
+    mostrarInfo('Tu navegador no soporta geolocalizacion.');
+    return;
+  }
+
+  mostrarInfo('Obteniendo coordenadas GPS para el vertice...');
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      agregarPunto(latitude, longitude);
+      mapa.setView([latitude, longitude], 17);
+      mostrarInfo(`Vertice GPS agregado: [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`);
+    },
+    (err) => {
+      mostrarInfo('Error al obtener ubicacion GPS para el vertice.');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+// Funcion central para añadir puntos (usada por clics, GPS y recarga)
+function agregarPunto(lat, lng) {
+  if (poligono) return;
+
+  puntos.push([lat, lng]);
+
+  const colorSeleccionado = document.getElementById('inputColor').value;
+  const v = L.circleMarker([lat, lng], { radius: 6, color: colorSeleccionado, fillOpacity: 1 }).addTo(mapa);
+  vertices.push(v);
+
+  lineaGuia.setStyle({ color: colorSeleccionado });
+  lineaGuia.setLatLngs(puntos);
+  
+  actualizarTabla();
+  actualizarBotones();
+  guardarEnLocalStorage(); // Reto 5
+  mostrarInfo(`${puntos.length} vertice(s). Necesitas al menos 3 para cerrar el poligono.`);
+}
+
+// Reto 1: Actualizar la tabla HTML de coordenadas
 function actualizarTabla() {
   const tbody = document.getElementById('tablaVerticesBody');
   tbody.innerHTML = '';
 
   if (puntos.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #777;">No hay vertices aun</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #777;">No hay vertices aún</td></tr>';
     return;
   }
 
@@ -76,23 +118,8 @@ function actualizarTabla() {
   });
 }
 
-// Paso 4: Capturar vertices con clics en el mapa
 mapa.on('click', (e) => {
-  if (poligono) return;
-
-  const { lat, lng } = e.latlng;
-  puntos.push([lat, lng]);
-
-  const colorSeleccionado = document.getElementById('inputColor').value;
-  const v = L.circleMarker([lat, lng], { radius: 6, color: colorSeleccionado, fillOpacity: 1 }).addTo(mapa);
-  vertices.push(v);
-
-  lineaGuia.setStyle({ color: colorSeleccionado });
-  lineaGuia.setLatLngs(puntos);
-  
-  actualizarTabla(); // Actualiza la tabla de vertices
-  actualizarBotones();
-  mostrarInfo(`${puntos.length} vertice(s). Necesitas al menos 3 para cerrar el poligono.`);
+  agregarPunto(e.latlng.lat, e.latlng.lng);
 });
 
 function actualizarBotones() {
@@ -101,11 +128,17 @@ function actualizarBotones() {
   document.getElementById('btnExportar').disabled = poligono === null;
 }
 
-// Paso 5: Conversion a GeoJSON y Medicion con Turf.js
+// Reto 3: GeoJSON incluyendo el nombre personalizado del input
 function aGeoJSON() {
   const anillo = puntos.map(([lat, lng]) => [lng, lat]);
-  anillo.push(anillo[0]);
-  return turf.polygon([anillo], { nombre: 'Mi poligono', creado: new Date().toISOString() });
+  anillo.push(anillo[0]); // Cerrar el anillo
+  
+  const nombrePoligono = document.getElementById('inputNombre').value || 'Mi poligono';
+
+  return turf.polygon([anillo], { 
+    nombre: nombrePoligono, 
+    creado: new Date().toISOString() 
+  });
 }
 
 function medir() {
@@ -127,17 +160,18 @@ function cerrarPoligono() {
   
   mostrarInfo(`Poligono cerrado. area: ${area.toFixed(1)} m² (${(area / 10000).toFixed(3)} ha).`);
   actualizarBotones();
+  guardarEnLocalStorage(); // Reto 5
 }
 
-// Paso 6: Deshacer punto y Limpiar mapa
 function deshacerPunto() {
   puntos.pop();
   const ultimoVertice = vertices.pop();
   if (ultimoVertice) mapa.removeLayer(ultimoVertice);
 
   lineaGuia.setLatLngs(puntos);
-  actualizarTabla(); // Actualiza la tabla al deshacer
+  actualizarTabla();
   actualizarBotones();
+  guardarEnLocalStorage(); // Reto 5
   mostrarInfo(`${puntos.length} vertice(s).`);
 }
 
@@ -152,44 +186,116 @@ function limpiar() {
     poligono = null;
   }
 
-  actualizarTabla(); // Limpia la tabla
+  actualizarTabla();
   actualizarBotones();
+  localStorage.removeItem('poligono_guardado'); // Reto 5
   mostrarInfo('Mapa limpio. Haz clic para empezar de nuevo.');
 }
 
-// Paso 7: Exportar GeoJSON
+// Reto 5: Metodos de localStorage
+function guardarEnLocalStorage() {
+  const estado = {
+    puntos,
+    nombre: document.getElementById('inputNombre').value,
+    cerrado: poligono !== null
+  };
+  localStorage.setItem('poligono_guardado', JSON.stringify(estado));
+}
+
+function cargarDesdeLocalStorage() {
+  const datosGuardados = localStorage.getItem('poligono_guardado');
+  if (!datosGuardados) return;
+
+  try {
+    const { puntos: puntosGuardados, nombre, cerrado } = JSON.parse(datosGuardados);
+    if (nombre) document.getElementById('inputNombre').value = nombre;
+    
+    if (Array.isArray(puntosGuardados)) {
+      puntosGuardados.forEach(([lat, lng]) => agregarPunto(lat, lng));
+      if (cerrado && puntos.length >= 3) {
+        cerrarPoligono();
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando desde localStorage:', err);
+  }
+}
+
+// Reto 6: Importar archivo GeoJSON
+function importarGeoJSON(e) {
+  const archivo = e.target.files[0];
+  if (!archivo) return;
+
+  const lector = new FileReader();
+  lector.onload = (evento) => {
+    try {
+      const geojson = JSON.parse(evento.target.result);
+      
+      let coordenadas = [];
+      if (geojson.type === 'Feature' && geojson.geometry.type === 'Polygon') {
+        coordenadas = geojson.geometry.coordinates[0];
+      } else if (geojson.type === 'Polygon') {
+        coordenadas = geojson.coordinates[0];
+      } else {
+        alert('El archivo debe contener un Polygon GeoJSON valido.');
+        return;
+      }
+
+      limpiar(); // Se limpia el estado actual antes de importar
+      
+      // GeoJSON guarda en formato [lng, lat], invertimos a [lat, lng]
+      // Ignoramos el último punto duplicado si cierra el anillo
+      const puntosInvertidos = coordenadas.map(([lng, lat]) => [lat, lng]);
+      if (puntosInvertidos.length > 3 && 
+          puntosInvertidos[0][0] === puntosInvertidos[puntosInvertidos.length - 1][0] &&
+          puntosInvertidos[0][1] === puntosInvertidos[puntosInvertidos.length - 1][1]) {
+        puntosInvertidos.pop();
+      }
+
+      puntosInvertidos.forEach(([lat, lng]) => agregarPunto(lat, lng));
+      cerrarPoligono();
+      mostrarInfo('Archivo GeoJSON cargado con exito.');
+    } catch (err) {
+      alert('Error al procesar el archivo GeoJSON.');
+    }
+  };
+  lector.readAsText(archivo);
+}
+
 function exportar() {
   const texto = JSON.stringify(aGeoJSON(), null, 2);
   const blob = new Blob([texto], { type: 'application/geo+json' });
   const enlace = document.createElement('a');
 
   enlace.href = URL.createObjectURL(blob);
-  enlace.download = 'poligono.geojson';
+  enlace.download = `${document.getElementById('inputNombre').value || 'poligono'}.geojson`;
   enlace.click();
 
   setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
 }
 
-// Reto 2: Evento para cambiar dinámicamente el color del poligono o vertices
+// Reto 2: Evento para cambiar dinamicamente el color
 document.getElementById('inputColor').addEventListener('input', (e) => {
   const nuevoColor = e.target.value;
-  
-  // Cambiar color del poligono si ya está cerrado
-  if (poligono) {
-    poligono.setStyle({ color: nuevoColor });
-  }
-
-  // Cambiar color de la linea guia y los vertices
+  if (poligono) poligono.setStyle({ color: nuevoColor });
   lineaGuia.setStyle({ color: nuevoColor });
   vertices.forEach((v) => v.setStyle({ color: nuevoColor }));
 });
 
+// Guardar el nombre cuando cambia
+document.getElementById('inputNombre').addEventListener('input', guardarEnLocalStorage);
+
 // Listeners de los botones
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
+document.getElementById('btnAgregarGPS').addEventListener('click', agregarVerticeGPS);
 document.getElementById('btnCerrar').addEventListener('click', cerrarPoligono);
 document.getElementById('btnDeshacer').addEventListener('click', deshacerPunto);
 document.getElementById('btnLimpiar').addEventListener('click', limpiar);
 document.getElementById('btnExportar').addEventListener('click', exportar);
+document.getElementById('inputImportar').addEventListener('change', importarGeoJSON);
 
-// Geolocalizacion inicial
-ubicarUsuario();
+// Cargar estado guardado previa o iniciar con geolocalizacion
+cargarDesdeLocalStorage();
+if (puntos.length === 0) {
+  ubicarUsuario();
+}
