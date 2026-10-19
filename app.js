@@ -133,10 +133,12 @@ function aGeoJSON() {
   const anillo = puntos.map(([lat, lng]) => [lng, lat]);
   anillo.push(anillo[0]); // Cerrar el anillo
   
-  const nombrePoligono = document.getElementById('inputNombre').value || 'Mi poligono';
+  // Obtener el nombre actual ingresado en la caja de texto
+  const nombreIngresado = document.getElementById('inputNombre').value.trim();
+  const nombreFinal = nombreIngresado !== '' ? nombreIngresado : 'Mi polígono';
 
   return turf.polygon([anillo], { 
-    nombre: nombrePoligono, 
+    nombre: nombreFinal, 
     creado: new Date().toISOString() 
   });
 }
@@ -150,17 +152,25 @@ function medir() {
 
 function cerrarPoligono() {
   const colorSeleccionado = document.getElementById('inputColor').value;
+  // Reto 3: Obtener el nombre ingresado en el input
+  const nombrePoligono = document.getElementById('inputNombre').value || 'Mi polígono';
   
   poligono = L.polygon(puntos, { color: colorSeleccionado, fillOpacity: 0.35 }).addTo(mapa);
   lineaGuia.setLatLngs([]);
   mapa.fitBounds(poligono.getBounds());
 
   const { area, perimetro } = medir();
-  poligono.bindPopup(`<b>area:</b> ${area.toFixed(1)} m²<br><b>Perimetro:</b> ${perimetro.toFixed(1)} m`).openPopup();
+
+  // Se añade el nombre al contenido del Popup
+  poligono.bindPopup(`
+    <b>${nombrePoligono}</b><br>
+    <b>Area:</b> ${area.toFixed(1)} m²<br>
+    <b>PerImetro:</b> ${perimetro.toFixed(1)} m
+  `).openPopup();
   
-  mostrarInfo(`Poligono cerrado. area: ${area.toFixed(1)} m² (${(area / 10000).toFixed(3)} ha).`);
+  mostrarInfo(`PolIgono "${nombrePoligono}" cerrado. Area: ${area.toFixed(1)} m² (${(area / 10000).toFixed(3)} ha).`);
   actualizarBotones();
-  guardarEnLocalStorage(); // Reto 5
+  guardarEnLocalStorage();
 }
 
 function deshacerPunto() {
