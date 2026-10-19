@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poligono con Geolocalización</title>
+  <!-- CSS de Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <header>
+    <h1>Mi poligono</h1>
+    <div class="controles">
+      <button id="btnUbicar">Mi ubicacion</button>
+      <button id="btnCerrar" disabled>Cerrar poligono</button>
+      <button id="btnDeshacer" disabled>Deshacer punto</button>
+      <button id="btnLimpiar">Limpiar</button>
+      <button id="btnExportar" disabled>Exportar GeoJSON</button>
+      
+      <!-- Reto 2: Selector de color -->
+      <label for="inputColor" style="display: flex; align-items: center; gap: 4px; font-size: 0.9rem;">
+        Color:
+        <input type="color" id="inputColor" value="#27ae60">
+      </label>
+    </div>
+    <p id="info">Haz clic en el mapa para agregar vertices.</p>
+  </header>
+
+  <!-- El contenedor del mapa -->
+  <div id="mapa"></div>
+
+  <!-- Reto 1: Tabla HTML de coordenadas -->
+  <div id="contenedorTabla">
+    <h3>Vértices agregados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Latitud</th>
+          <th>Longitud</th>
+        </tr>
+      </thead>
+      <tbody id="tablaVerticesBody">
+        <tr>
+          <td colspan="3" style="text-align: center; color: #777;">No hay vértices aún</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
